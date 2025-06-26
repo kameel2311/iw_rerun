@@ -33,7 +33,7 @@ The protocol supports basic commands that the `viewer` can send to the `app`, su
 ## Usage
 
 First start the Rerun SDK app with `cargo run -p custom_callback --bin custom_callback_app`,
-and then start the extended viewer with `cargo run -p custom_callback --bin custom_callback_viewer`.
+and then start the extended viewer with `cargo run -p custom_callback_mod --bin custom_callback_viewer_mod`.
 
 ## Relationship with Viewer callbacks
 

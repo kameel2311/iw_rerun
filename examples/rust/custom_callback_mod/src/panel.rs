@@ -52,6 +52,7 @@ impl eframe::App for Control {
             });
         self.app.update(ctx, frame);
     }
+    // let time_secs = self.app.current_timeline_time();
 }
 
 impl Control {
@@ -94,20 +95,40 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
         // Timeline slider with percentage display
 
         ui.label(percentage_text);
-        let changed = ui
-            .add(
-                egui::Slider::new(
-                    &mut states.dynamic_offset_percentage,
-                    0.0_f32..=1.0_f32,
-                )
-                .show_value(false)
-                .clamp_to_range(true)
-                .step_by(0.01)
-                .fixed_decimals(2)
-            )
-            .changed();
+        // let changed = ui
+        //     .add(
+        //         egui::Slider::new(
+        //             &mut states.dynamic_offset_percentage,
+        //             0.0_f32..=1.0_f32,
+        //         )
+        //         .show_value(false)
+        //         .clamp_to_range(true)
+        //         .step_by(0.01)
+        //         .fixed_decimals(2)
+        //     )
+        //     .changed();
 
-        if changed {
+        // if changed {
+        //     handle
+        //         .send(Message::Timeline {
+        //             offset_percentage: states.dynamic_offset_percentage,
+        //         })
+        //         .warn_on_err_once("Failed to send timeline update");
+        // }
+        
+        let slider_response = ui.add(
+            egui::Slider::new(
+                &mut states.dynamic_offset_percentage,
+                0.0_f32..=1.0_f32,
+            )
+            .show_value(false)
+            .clamp_to_range(true)
+            .step_by(0.01)
+            .fixed_decimals(2),
+        );
+
+        // Only send if user released the mouse after interacting with slider
+        if slider_response.drag_stopped() {
             handle
                 .send(Message::Timeline {
                     offset_percentage: states.dynamic_offset_percentage,
