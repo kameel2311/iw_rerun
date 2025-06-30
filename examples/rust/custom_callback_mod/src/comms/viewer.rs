@@ -43,6 +43,16 @@ use super::protocol::Message;
 /// # Ok(())
 /// # }
 /// ```
+
+/// Creating a new Shared State to Handle Recieving from the Server
+#[derive(Debug, Default)]
+pub struct SharedState {
+    pub last_received_message: Option<Message>,
+}
+
+pub type SharedStateHandle = Arc<Mutex<SharedState>>;
+
+
 #[derive(Debug)]
 pub struct ControlViewer {
     address: String,
@@ -50,6 +60,7 @@ pub struct ControlViewer {
     rx: Arc<Mutex<UnboundedReceiver<Message>>>,
     message_queue: Arc<Mutex<VecDeque<Message>>>,
     notify: Arc<Notify>,
+    shared_state: SharedStateHandle,
 }
 
 /// A [`Clone`] handle to the write channel opened by a [`ControlViewer`].
@@ -65,15 +76,20 @@ impl ControlViewerHandle {
 }
 
 impl ControlViewer {
-    pub async fn connect(address: String) -> tokio::io::Result<Self> {
+    pub async fn connect(address: String) -> tokio::io::Result<(Self, SharedStateHandle)> {
         let (tx, rx) = unbounded_channel();
-        Ok(Self {
-            address,
-            tx,
-            rx: Arc::new(Mutex::new(rx)),
-            message_queue: Arc::new(Mutex::new(VecDeque::new())),
-            notify: Arc::new(Notify::new()),
-        })
+        let shared_state = Arc::new(Mutex::new(SharedState::default()));
+        Ok((
+            Self {
+                address,
+                tx,
+                rx: Arc::new(Mutex::new(rx)),
+                message_queue: Arc::new(Mutex::new(VecDeque::new())),
+                notify: Arc::new(Notify::new()),
+                shared_state: shared_state.clone(),
+            },
+            shared_state,
+        ))
     }
 
     pub fn handle(&self) -> ControlViewerHandle {
@@ -93,6 +109,8 @@ impl ControlViewer {
             tokio::spawn(async move {
                 Self::global_message_handler(rx, message_queue, notify).await;
             });
+            // let shared_state = Arc::clone(&self.shared_state);
+            // let reader_task = tokio::spawn(Self::handle_read(read_half, shared_state));
         }
 
         loop {
@@ -109,7 +127,9 @@ impl ControlViewer {
                     let (read_half, write_half) = tokio::io::split(socket);
 
                     // Spawn tasks to handle read and write
-                    let reader_task = tokio::spawn(Self::handle_read(read_half));
+                    let shared_state = Arc::clone(&self.shared_state);
+                    let reader_task = tokio::spawn(Self::handle_read(read_half, shared_state));
+                    
                     let writer_task = {
                         let message_queue = Arc::clone(&self.message_queue);
                         let notify = Arc::clone(&self.notify);
@@ -164,7 +184,7 @@ impl ControlViewer {
         re_log::info!("Global message channel closed");
     }
 
-    async fn handle_read(mut read: ReadHalf<TcpStream>) {
+    async fn handle_read(mut read: ReadHalf<TcpStream>, shared_state: SharedStateHandle,) {
         let mut buf = [0; 1024];
         loop {
             match read.read(&mut buf).await {
@@ -176,6 +196,9 @@ impl ControlViewer {
                     Ok(message) => {
                         // we received a message from the server, we can process it here if needed
                         re_log::info!("Received message from server: {:?}", message);
+
+                        let mut state = shared_state.lock().await;
+                        state.last_received_message = Some(message);
                     }
                     Err(err) => {
                         re_log::error!(

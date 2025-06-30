@@ -7,6 +7,10 @@ pub enum Message {
     Timeline {
         offset_percentage: f32,
     },
+    BagAndBuffer {
+        bag_duration: f32,
+        buffer_length: f32,
+    },
     Disconnect,
 }
 

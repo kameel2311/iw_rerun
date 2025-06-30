@@ -80,3 +80,7 @@ justfile
 
 # IDE stuff
 /.idea
+
+# Unwanted files
+*.png
+*.rrd

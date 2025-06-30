@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // First we attempt to connect to the external application
-    let viewer = ControlViewer::connect(format!("127.0.0.1:{CONTROL_PORT}")).await?;
+    let (viewer, shared_state) = ControlViewer::connect(format!("127.0.0.1:{CONTROL_PORT}").to_owned()).await?;
     let handle = viewer.handle();
 
     // Spawn the viewer client in a separate task
@@ -69,7 +69,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             rerun_app.add_log_receiver(rx_log);
             rerun_app.add_table_receiver(rx_table);
 
-            Ok(Box::new(Control::new(rerun_app, handle)))
+            Ok(Box::new(Control::new(rerun_app, handle, shared_state.clone())))
+
         }),
     )?;
 
