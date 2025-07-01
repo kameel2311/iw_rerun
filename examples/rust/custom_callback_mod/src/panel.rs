@@ -15,6 +15,7 @@ pub struct ControlStates {
     pub controls_view: ControlsView,
     pub message_kind: ObjectKind,
     pub dynamic_offset_percentage: f32,
+    pub text: String, // For the labeling tool
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -50,6 +51,12 @@ impl eframe::App for Control {
             .default_height(60.0)
             .show(ctx, |ui| {
                 self.ui(ui);
+            });
+        egui::SidePanel::right("labeling_panel")
+            .resizable(false)
+            .default_width(300.0)
+            .show(ctx, |ui| {
+                self.ui_side_panel(ui);
             });
         self.app.update(ctx, frame);
     }
@@ -103,6 +110,18 @@ impl Control {
                 });
         });
     }
+
+    fn ui_side_panel(&mut self, ui: &mut egui::Ui) {
+        ui.spacing_mut().item_spacing.y = 9.0;
+        list_item::list_item_scope(ui, "Labeling Tool", |ui| {
+            ui.spacing_mut().item_spacing.y = ui.ctx().style().spacing.item_spacing.y;
+            ui.section_collapsing_header("Labeling Tool")
+                .default_open(true)
+                .show(ui, |ui| {
+                    labeling_tool_ui(ui, self.handle.clone(), &mut self.states);
+                });
+        });
+    }
 }
 
 fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &mut ControlStates, buffer_length_value: f32, bag_duration_value: f32) {
@@ -121,6 +140,7 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage > 1.0 {
                 states.dynamic_offset_percentage = 1.0;
             }
+            states.text.clear();
         }
         // Add a Backward button
         if ui.add(egui::Button::new("Backward 10%")).clicked(){
@@ -135,6 +155,7 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage < 0.0 {
                 states.dynamic_offset_percentage = 0.0;
             }
+            states.text.clear();
         }
     });
     ui.horizontal(|ui| {
@@ -150,6 +171,7 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage > 1.0 {
                 states.dynamic_offset_percentage = 1.0;
             }
+            states.text.clear();
         }
         if ui.add(egui::Button::new("Previous Buffer")).clicked() {
             // Send a message to move the timeline backward
@@ -163,6 +185,7 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage < 0.0 {
                 states.dynamic_offset_percentage = 0.0;
             }
+            states.text.clear();
         }
     });
     ui.add_space(5.0);
@@ -215,8 +238,30 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
                     offset_percentage: states.dynamic_offset_percentage,
                 })
                 .warn_on_err_once("Failed to send timeline update");
+            states.text.clear();
         }
     });
 
     ui.add_space(5.0);
+}
+
+fn labeling_tool_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &mut ControlStates) {
+    ui.spacing_mut().item_spacing.y = 9.0;
+
+    // Add UI elements for the labeling tool here
+    ui.label("Label the currently loaded buffer");
+    // Example: Add a text input for labels
+    // ui.text_edit_singleline(&mut states.controls_view.key_sequence);
+    ui.add(egui::TextEdit::multiline(&mut states.text));
+    let response = ui.add(egui::Button::new("Submit Label"));
+    if response.clicked() {
+        // Handle the label submission
+        println!("Label submitted: {}", states.text);
+        // Here you can send the label to the server or process it as needed
+        handle
+            .send(Message::LabelingTool {
+                key_sequence: states.text.clone(),
+            })
+            .warn_on_err_once("Failed to send timeline update");
+    }
 }

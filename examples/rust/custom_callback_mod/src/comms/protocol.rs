@@ -11,6 +11,9 @@ pub enum Message {
         bag_duration: f32,
         buffer_length: f32,
     },
+    LabelingTool {
+        key_sequence: String,
+    },
     Disconnect,
 }
 
