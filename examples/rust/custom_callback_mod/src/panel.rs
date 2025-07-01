@@ -113,6 +113,16 @@ impl Control {
 
     fn ui_side_panel(&mut self, ui: &mut egui::Ui) {
         ui.spacing_mut().item_spacing.y = 9.0;
+        let mut loaded_label = String::new();
+        if let Ok(mut state) = self.shared_state.try_lock() {
+            if let Some(Message::LabelingTool {key_sequence}) = &state.last_received_message {
+                ui.label(format!("Loaded Label"));
+                // Update the states with the received values
+                loaded_label = key_sequence.clone();
+                self.states.text = loaded_label.clone();
+                state.last_received_message = None;
+            }
+
         list_item::list_item_scope(ui, "Labeling Tool", |ui| {
             ui.spacing_mut().item_spacing.y = ui.ctx().style().spacing.item_spacing.y;
             ui.section_collapsing_header("Labeling Tool")
@@ -120,7 +130,8 @@ impl Control {
                 .show(ui, |ui| {
                     labeling_tool_ui(ui, self.handle.clone(), &mut self.states);
                 });
-        });
+            });
+        }
     }
 }
 
