@@ -84,3 +84,6 @@ justfile
 # Unwanted files
 *.png
 *.rrd
+*.mp4
+*.h264
+# tests/*
