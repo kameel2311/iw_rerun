@@ -2050,6 +2050,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom_callback_mod"
+version = "0.24.0-alpha.1+dev"
+dependencies = [
+ "bincode",
+ "mimalloc",
+ "parking_lot",
+ "rerun",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "custom_data_loader"
 version = "0.24.0-alpha.1+dev"
 dependencies = [
