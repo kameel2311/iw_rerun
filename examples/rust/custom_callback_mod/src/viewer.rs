@@ -1,5 +1,5 @@
 use rerun::external::{eframe, re_crash_handler, re_grpc_server, re_log, re_memory, re_viewer};
-
+use std::env;
 use custom_callback_mod::{comms::viewer::ControlViewer, panel::Control};
 
 // By using `re_memory::AccountingAllocator` Rerun can keep track of exactly how much memory it is using,
@@ -9,6 +9,8 @@ use custom_callback_mod::{comms::viewer::ControlViewer, panel::Control};
 static GLOBAL: re_memory::AccountingAllocator<mimalloc::MiMalloc> =
     re_memory::AccountingAllocator::new(mimalloc::MiMalloc);
 
+/// Default IP address for the external application
+const DEFAULT_CONTROL_IP: &str = "127.0.0.1";
 /// Port used for control messages
 const CONTROL_PORT: u16 = 8888;
 
@@ -17,6 +19,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let main_thread_token = re_viewer::MainThreadToken::i_promise_i_am_on_the_main_thread();
     // Direct calls using the `log` crate to stderr. Control with `RUST_LOG=debug` etc.
     re_log::setup_logging();
+
+    // Get the control IP from command line arguments, or use the default if not provided.
+    let args: Vec<String> = env::args().collect();
+    let control_ip = if args.len() > 1 {
+        &args[1]
+    } else {
+        DEFAULT_CONTROL_IP
+    };
 
     // Install handlers for panics and crashes that prints to stderr and send
     // them to Rerun analytics (if the `analytics` feature is on in `Cargo.toml`).
@@ -31,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // First we attempt to connect to the external application
-    let (viewer, shared_state) = ControlViewer::connect(format!("127.0.0.1:{CONTROL_PORT}").to_owned()).await?;
+    let (viewer, shared_state) = ControlViewer::connect(format!("{}:{}", control_ip, CONTROL_PORT)).await?;
     let handle = viewer.handle();
 
     // Spawn the viewer client in a separate task
