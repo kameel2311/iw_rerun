@@ -139,22 +139,6 @@ impl Control {
 fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &mut ControlStates, buffer_length_value: f32, bag_duration_value: f32) {
     ui.add_space(5.0);
     ui.horizontal(|ui| {
-        // Add a Forward button
-        if ui.add(egui::Button::new("Forward 10%")).clicked() {
-            // Send a message to move the timeline forward
-            handle
-                .send(Message::Timeline {
-                    offset_percentage: states.dynamic_offset_percentage + 0.1,
-                })
-                .warn_on_err_once("Failed to send timeline update");
-            states.dynamic_offset_percentage += 0.1;
-            // Ensure the percentage does not exceed 1.0
-            if states.dynamic_offset_percentage > 1.0 {
-                states.dynamic_offset_percentage = 1.0;
-            }
-            states.category.clear();
-            states.description.clear();
-        }
         // Add a Backward button
         if ui.add(egui::Button::new("Backward 10%")).clicked(){
             // Send a message to move the timeline backward
@@ -171,16 +155,15 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             states.category.clear();
             states.description.clear();
         }
-    });
-    ui.horizontal(|ui| {
-        if ui.add(egui::Button::new("Next Buffer")).clicked() {
+        // Add a Forward button
+        if ui.add(egui::Button::new("Forward 10%")).clicked() {
             // Send a message to move the timeline forward
             handle
                 .send(Message::Timeline {
-                    offset_percentage: states.dynamic_offset_percentage + buffer_length_value / bag_duration_value,
+                    offset_percentage: states.dynamic_offset_percentage + 0.1,
                 })
                 .warn_on_err_once("Failed to send timeline update");
-            states.dynamic_offset_percentage += buffer_length_value / bag_duration_value;
+            states.dynamic_offset_percentage += 0.1;
             // Ensure the percentage does not exceed 1.0
             if states.dynamic_offset_percentage > 1.0 {
                 states.dynamic_offset_percentage = 1.0;
@@ -188,6 +171,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             states.category.clear();
             states.description.clear();
         }
+    });
+    ui.horizontal(|ui| {
         if ui.add(egui::Button::new("Previous Buffer")).clicked() {
             // Send a message to move the timeline backward
             handle
@@ -199,6 +184,21 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             // Ensure the percentage does not go below 0.0
             if states.dynamic_offset_percentage < 0.0 {
                 states.dynamic_offset_percentage = 0.0;
+            }
+            states.category.clear();
+            states.description.clear();
+        }
+        if ui.add(egui::Button::new("Next Buffer")).clicked() {
+            // Send a message to move the timeline forward
+            handle
+                .send(Message::Timeline {
+                    offset_percentage: states.dynamic_offset_percentage + buffer_length_value / bag_duration_value,
+                })
+                .warn_on_err_once("Failed to send timeline update");
+            states.dynamic_offset_percentage += buffer_length_value / bag_duration_value;
+            // Ensure the percentage does not exceed 1.0
+            if states.dynamic_offset_percentage > 1.0 {
+                states.dynamic_offset_percentage = 1.0;
             }
             states.category.clear();
             states.description.clear();
@@ -247,7 +247,21 @@ fn labeling_tool_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &mut
     // Add UI elements for the labeling tool here
     ui.label("Label the currently loaded buffer");
     // Example: Add a text input for labels
-    ui.label("Category:");
+    ui.label("Category: (from the listed options or custom input, keep empty and submit to delete label)");
+
+    // Select a category from presaved list
+    let response = ui.add(egui::Button::new("Dynamic Object"));
+    if response.clicked() {
+        states.category = "Dynamic Object".to_string();
+    }
+    let response = ui.add(egui::Button::new("Unmapped Map Changes"));
+    if response.clicked() {
+        states.category = "Unmapped Map Changes".to_string();
+    }
+    let response = ui.add(egui::Button::new("Blocked FOV"));
+    if response.clicked() {
+        states.category = "Blocked FOV".to_string();
+    }   
     ui.text_edit_singleline(&mut states.category);
     ui.label("Description:");
     ui.add(egui::TextEdit::multiline(&mut states.description));
