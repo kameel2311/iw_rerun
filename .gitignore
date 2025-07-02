@@ -82,8 +82,8 @@ justfile
 /.idea
 
 # Unwanted files
-*.png
-*.rrd
-*.mp4
-*.h264
+# *.png
+# *.rrd
+# *.mp4
+# *.h264
 # tests/*
