@@ -15,7 +15,8 @@ pub struct ControlStates {
     pub controls_view: ControlsView,
     pub message_kind: ObjectKind,
     pub dynamic_offset_percentage: f32,
-    pub text: String, // For the labeling tool
+    pub category: String, // For the labeling tool
+    pub description: String, // For the labeling tool
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -27,7 +28,8 @@ pub enum ObjectKind {
 
 #[derive(Default)]
 pub struct ControlsView {
-    pub key_sequence: Vec<String>,
+    pub category: Vec<String>,
+    pub description: Vec<String>,
 }
 
 pub struct Control {
@@ -83,7 +85,7 @@ impl Control {
         let mut buffer_length_value = 1.0;
         let mut bag_duration_value = 1.0;
         if let Ok(state) = self.shared_state.try_lock() {
-            if let Some(Message::BagAndBuffer { bag_duration, buffer_length}) = &state.last_received_message {
+            if let Some(Message::BagAndBuffer { bag_duration, buffer_length}) = &state.last_received_message_bag_buffer {
                 ui.label(format!(
                     "Received a message: Bag Duration: {:.2}s, Buffer Length: {:.2}s",
                     bag_duration, buffer_length
@@ -92,7 +94,7 @@ impl Control {
                 bag_duration_value  = *bag_duration;
                 buffer_length_value = *buffer_length;
                 
-            } else if state.last_received_message.is_some() {
+            } else if state.last_received_message_bag_buffer.is_some() {
                 ui.label("Received a non-timeline message.");
             } else {
                 ui.label("No message received yet.");
@@ -113,14 +115,13 @@ impl Control {
 
     fn ui_side_panel(&mut self, ui: &mut egui::Ui) {
         ui.spacing_mut().item_spacing.y = 9.0;
-        let mut loaded_label = String::new();
         if let Ok(mut state) = self.shared_state.try_lock() {
-            if let Some(Message::LabelingTool {key_sequence}) = &state.last_received_message {
+            if let Some(Message::LabelingTool {category, description}) = &state.last_received_message_labelling_tool {
                 ui.label(format!("Loaded Label"));
                 // Update the states with the received values
-                loaded_label = key_sequence.clone();
-                self.states.text = loaded_label.clone();
-                state.last_received_message = None;
+                self.states.category = category.clone();
+                self.states.description = description.clone();
+                state.last_received_message_labelling_tool = None;
             }
 
         list_item::list_item_scope(ui, "Labeling Tool", |ui| {
@@ -151,7 +152,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage > 1.0 {
                 states.dynamic_offset_percentage = 1.0;
             }
-            states.text.clear();
+            states.category.clear();
+            states.description.clear();
         }
         // Add a Backward button
         if ui.add(egui::Button::new("Backward 10%")).clicked(){
@@ -166,7 +168,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage < 0.0 {
                 states.dynamic_offset_percentage = 0.0;
             }
-            states.text.clear();
+            states.category.clear();
+            states.description.clear();
         }
     });
     ui.horizontal(|ui| {
@@ -182,7 +185,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage > 1.0 {
                 states.dynamic_offset_percentage = 1.0;
             }
-            states.text.clear();
+            states.category.clear();
+            states.description.clear();
         }
         if ui.add(egui::Button::new("Previous Buffer")).clicked() {
             // Send a message to move the timeline backward
@@ -196,7 +200,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
             if states.dynamic_offset_percentage < 0.0 {
                 states.dynamic_offset_percentage = 0.0;
             }
-            states.text.clear();
+            states.category.clear();
+            states.description.clear();
         }
     });
     ui.add_space(5.0);
@@ -210,27 +215,6 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
         // Timeline slider with percentage display
 
         ui.label(percentage_text);
-        // let changed = ui
-        //     .add(
-        //         egui::Slider::new(
-        //             &mut states.dynamic_offset_percentage,
-        //             0.0_f32..=1.0_f32,
-        //         )
-        //         .show_value(false)
-        //         .clamp_to_range(true)
-        //         .step_by(0.01)
-        //         .fixed_decimals(2)
-        //     )
-        //     .changed();
-
-        // if changed {
-        //     handle
-        //         .send(Message::Timeline {
-        //             offset_percentage: states.dynamic_offset_percentage,
-        //         })
-        //         .warn_on_err_once("Failed to send timeline update");
-        // }
-        
         let slider_response = ui.add(
             egui::Slider::new(
                 &mut states.dynamic_offset_percentage,
@@ -249,7 +233,8 @@ fn dynamic_timeline_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &
                     offset_percentage: states.dynamic_offset_percentage,
                 })
                 .warn_on_err_once("Failed to send timeline update");
-            states.text.clear();
+            states.category.clear();
+            states.description.clear();
         }
     });
 
@@ -262,16 +247,19 @@ fn labeling_tool_ui(ui: &mut egui::Ui, handle: ControlViewerHandle, states: &mut
     // Add UI elements for the labeling tool here
     ui.label("Label the currently loaded buffer");
     // Example: Add a text input for labels
-    // ui.text_edit_singleline(&mut states.controls_view.key_sequence);
-    ui.add(egui::TextEdit::multiline(&mut states.text));
+    ui.label("Category:");
+    ui.text_edit_singleline(&mut states.category);
+    ui.label("Description:");
+    ui.add(egui::TextEdit::multiline(&mut states.description));
     let response = ui.add(egui::Button::new("Submit Label"));
     if response.clicked() {
         // Handle the label submission
-        println!("Label submitted: {}", states.text);
+        println!("Label submitted: {} {}", states.category ,states.description);
         // Here you can send the label to the server or process it as needed
         handle
             .send(Message::LabelingTool {
-                key_sequence: states.text.clone(),
+                category: states.category.clone(),
+                description: states.description.clone(),
             })
             .warn_on_err_once("Failed to send timeline update");
     }

@@ -47,7 +47,8 @@ use super::protocol::Message;
 /// Creating a new Shared State to Handle Recieving from the Server
 #[derive(Debug, Default)]
 pub struct SharedState {
-    pub last_received_message: Option<Message>,
+    pub last_received_message_bag_buffer: Option<Message>,
+    pub last_received_message_labelling_tool: Option<Message>,
 }
 
 pub type SharedStateHandle = Arc<Mutex<SharedState>>;
@@ -198,7 +199,27 @@ impl ControlViewer {
                         re_log::info!("Received message from server: {:?}", message);
 
                         let mut state = shared_state.lock().await;
-                        state.last_received_message = Some(message);
+
+                        match &message {
+                            Message::Timeline { offset_percentage } => {
+                                // Update the shared state with the received message
+                                
+                            }
+                            Message::BagAndBuffer { bag_duration, buffer_length } => {
+                                // Update the shared state with the received message
+                                state.last_received_message_bag_buffer = Some(message.clone());
+                            }
+                            Message::LabelingTool { category, description } => {
+
+                                // Update the shared state with the received message
+                                state.last_received_message_labelling_tool = Some(message.clone());
+                            }
+                            Message::Disconnect => {
+                                re_log::info!("Received Disconnect message from server");
+                                // Handle disconnect logic if needed
+                                break;
+                            }
+                        }
                     }
                     Err(err) => {
                         re_log::error!(

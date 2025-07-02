@@ -12,7 +12,8 @@ pub enum Message {
         buffer_length: f32,
     },
     LabelingTool {
-        key_sequence: String,
+        category: String,
+        description: String,
     },
     Disconnect,
 }
