@@ -26,3 +26,5 @@ RUN apt-get update && apt-get install -y \
 # Build the Custom Rerun Visualization SDK
 RUN . "$HOME/.cargo/env" && \
     cargo build -p custom_callback_mod --bin custom_callback_viewer_mod --release
+
+ENTRYPOINT [ "bash" ]
