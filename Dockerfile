@@ -24,5 +24,5 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0
 
 # Build the Custom Rerun Visualization SDK
-# RUN bash -c "cargo build -p custom_callback_mod --bin custom_callback_viewer_mod --release"
-# RUN c
+RUN . "$HOME/.cargo/env" && \
+    cargo build -p custom_callback_mod --bin custom_callback_viewer_mod --release
