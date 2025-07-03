@@ -4,6 +4,7 @@ services:
   iw_rerun:
     build: .
     runtime: nvidia
+    platform: linux/amd64
     user: "${UID}:${GID}"
     volumes:
       - /home/${USER}/.cache/:/home/user/.cache/
@@ -12,6 +13,9 @@ services:
     environment:
       - "DISPLAY=$DISPLAY"
       - "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+      - "PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      - "CARGO_HOME=/root/.cargo"
+      - "RUSTUP_HOME=/root/.rustup"
     shm_size: "12gb"
     stdin_open: true
     tty: true
