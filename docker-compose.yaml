@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  iw_rerun:
+    build: .
+    runtime: nvidia
+    user: "${UID}:${GID}"
+    volumes:
+      - /home/${USER}/.cache/:/home/user/.cache/
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - .:/workspace
+    environment:
+      - "DISPLAY=$DISPLAY"
+      - "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+    shm_size: "12gb"
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
